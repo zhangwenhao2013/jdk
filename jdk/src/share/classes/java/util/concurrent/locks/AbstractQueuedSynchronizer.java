@@ -529,6 +529,8 @@ public abstract class AbstractQueuedSynchronizer
 
     /**
      * The synchronization state.
+     *
+     * 锁的状态 默认= 0 ,表示无所
      */
     private volatile int state;
 
@@ -581,12 +583,15 @@ public abstract class AbstractQueuedSynchronizer
      * @return node's predecessor
      */
     private Node enq(final Node node) {
+        //存在竞争  所以采用了CAS + 循环的方式
         for (;;) {
             Node t = tail;
             if (t == null) { // Must initialize
+                //初始化,创建一个 空的Node 作为CLH 队列的头
                 if (compareAndSetHead(new Node()))
                     tail = head;
             } else {
+                // 一起来竞争  竞争失败的线程, 被添加到CLH 队列尾
                 node.prev = t;
                 if (compareAndSetTail(t, node)) {
                     t.next = node;
@@ -606,6 +611,7 @@ public abstract class AbstractQueuedSynchronizer
         Node node = new Node(Thread.currentThread(), mode);
         // Try the fast path of enq; backup to full enq on failure
         Node pred = tail;
+        // 如果是第一次进来 CLH 队列为null(  这里应该是属于 一段优化代码  , 入竞争不激烈,直接添加到队列尾)
         if (pred != null) {
             node.prev = pred;
             if (compareAndSetTail(pred, node)) {
@@ -857,14 +863,18 @@ public abstract class AbstractQueuedSynchronizer
         try {
             boolean interrupted = false;
             for (;;) {
+                //获取头节点  头一个节点
                 final Node p = node.predecessor();
+                //如果是 头一个节点是 CLH队列的头, 表示自己是第一个排队的节点,再次尝试获取锁( 或许 在这短暂的时间内 占用锁的线程已经执行完了 ).
                 if (p == head && tryAcquire(arg)) {
                     setHead(node);
                     p.next = null; // help GC
                     failed = false;
                     return interrupted;
                 }
+                //获取锁失败  将没抢到锁的节点的  waitStatus 设置成 Node.SIGNAL
                 if (shouldParkAfterFailedAcquire(p, node) &&
+                        // 线程 park  ,等待unpark ( 唤醒之后会一直在 acquireQueued 中的for 循环中尝试获取锁)
                     parkAndCheckInterrupt())
                     interrupted = true;
             }
@@ -1193,6 +1203,7 @@ public abstract class AbstractQueuedSynchronizer
      *        can represent anything you like.
      */
     public final void acquire(int arg) {
+        // 尝试获取锁--> 获取错失败-->创建一个节点 添加到
         if (!tryAcquire(arg) &&
             acquireQueued(addWaiter(Node.EXCLUSIVE), arg))
             selfInterrupt();
