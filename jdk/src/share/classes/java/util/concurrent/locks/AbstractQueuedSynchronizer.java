@@ -1206,7 +1206,7 @@ public abstract class AbstractQueuedSynchronizer
      *        can represent anything you like.
      */
     public final void acquire(int arg) {
-        // 尝试获取锁--> 获取错失败-->创建一个节点 添加到
+        // 尝试获取锁--> 获取锁失败-->创建一个节点 添加到
         if (!tryAcquire(arg) &&
             acquireQueued(addWaiter(Node.EXCLUSIVE), arg))
             selfInterrupt();

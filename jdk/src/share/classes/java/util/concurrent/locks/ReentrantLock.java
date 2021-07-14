@@ -241,7 +241,7 @@ public class ReentrantLock implements Lock, java.io.Serializable {
             if (c == 0) {
                 //是否存在队列在排队  如果队列为null 可以竞争锁(有并发)
                 if (!hasQueuedPredecessors() &&
-                        //
+                        // 看谁先设置成功  : 给state 设置值  volatile的
                     compareAndSetState(0, acquires)) {
                     setExclusiveOwnerThread(current);
                     return true;
