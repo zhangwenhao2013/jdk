@@ -872,13 +872,16 @@ public abstract class AbstractQueuedSynchronizer
                     failed = false;
                     return interrupted;
                 }
-                //获取锁失败  将没抢到锁的节点的  waitStatus 设置成 Node.SIGNAL
+                //获取锁失败  将没抢到锁的节点的  前一个node 的 waitStatus 设置成 Node.SIGNAL
                 if (shouldParkAfterFailedAcquire(p, node) &&
                         // 线程 park  ,等待unpark ( 唤醒之后会一直在 acquireQueued 中的for 循环中尝试获取锁)
                     parkAndCheckInterrupt())
                     interrupted = true;
             }
         } finally {
+            // 如果failed = true 或者 出现异常的时候(线程中断的时候会抛出异常 node.predecessor() NullPointerException)
+            // 内部主要干了2个事情:
+            //1: 将出现异常的节点跳过 链表移除节点. 2:唤醒下一个节点的线程
             if (failed)
                 cancelAcquire(node);
         }
