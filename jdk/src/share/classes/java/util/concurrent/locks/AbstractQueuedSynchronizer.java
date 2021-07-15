@@ -876,6 +876,7 @@ public abstract class AbstractQueuedSynchronizer
                     return interrupted;
                 }
                 //获取锁失败  将没抢到锁的节点的  前一个node 的 waitStatus 设置成 Node.SIGNAL
+                //最后一个node  waitStatus 默认是 0, 如果后面没有其他线程在排队,设置不设置都不重要了
                 if (shouldParkAfterFailedAcquire(p, node) &&
                         // 线程 park  ,等待unpark ( 唤醒之后会一直在 acquireQueued 中的for 循环中尝试获取锁)
                     parkAndCheckInterrupt())
