@@ -838,6 +838,9 @@ public abstract class AbstractQueuedSynchronizer
      */
     private final boolean parkAndCheckInterrupt() {
         LockSupport.park(this);
+        // 如果线程执行interrupt() 方法---> 最终执行 interrupt0()方法  线程会有一个中断标记 isInterrupted
+        // .isInterrupted(true); 会清楚中断标记  
+        // .isInterrupted(false); 不会清楚中断标记
         return Thread.interrupted();
     }
 
@@ -1209,6 +1212,7 @@ public abstract class AbstractQueuedSynchronizer
         // 尝试获取锁--> 获取锁失败-->创建一个节点 添加到
         if (!tryAcquire(arg) &&
             acquireQueued(addWaiter(Node.EXCLUSIVE), arg))
+            // 如果是中断返回的, 给线程重新 打一个中断标记, 其他调用的地方使用.
             selfInterrupt();
     }
 
