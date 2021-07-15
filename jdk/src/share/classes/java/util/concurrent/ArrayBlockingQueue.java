@@ -320,8 +320,10 @@ public class ArrayBlockingQueue<E> extends AbstractQueue<E>
     public void put(E e) throws InterruptedException {
         checkNotNull(e);
         final ReentrantLock lock = this.lock;
+        // 竞争锁 (没有竞争到锁的将会阻塞)
         lock.lockInterruptibly();
         try {
+            //判断是否已经满了---- 执行条件队列( 当前持有锁的线程,释放锁,阻塞自己,通知消费线程获取锁)
             while (count == items.length)
                 notFull.await();
             insert(e);
