@@ -1900,7 +1900,7 @@ public abstract class AbstractQueuedSynchronizer
                 if ( (firstWaiter = first.nextWaiter) == null)
                     lastWaiter = null;
                 first.nextWaiter = null;
-                // 将 同步队列中的被阻塞的线程 取出 ,加入到抢锁的队列中去
+                // 将 同步队列中的被阻塞的线程 取出 (这里取出,回头再判断是否在同步队列的时候 就不在了) ,加入到抢锁的队列中去
             } while (!transferForSignal(first) &&
                      (first = firstWaiter) != null);
         }
@@ -2071,7 +2071,7 @@ public abstract class AbstractQueuedSynchronizer
             // 是否当前线程的 全部锁
             int savedState = fullyRelease(node);
             int interruptMode = 0;
-            // 判断是否已经进入了 同步队列
+            // 判断是否已经进入了 同步队列  , 在doSignal 方法中会将node 从同步队列中移出---> 这样就可以跳出循环
             while (!isOnSyncQueue(node)) {
                 //进入条件队列的 线程,释放了锁, 阻塞在这(等待唤醒)
                 LockSupport.park(this);
