@@ -1002,6 +1002,7 @@ public abstract class AbstractQueuedSynchronizer
                 if (p == head) {
                     int r = tryAcquireShared(arg);
                     if (r >= 0) {
+                        // 不同于 ReentrantLock 只是setHead ,这里还有其他逻辑 Propagate 传播
                         setHeadAndPropagate(node, r);
                         p.next = null; // help GC
                         failed = false;
@@ -1317,7 +1318,10 @@ public abstract class AbstractQueuedSynchronizer
             throws InterruptedException {
         if (Thread.interrupted())
             throw new InterruptedException();
+        // 如果抢到了锁-->修改state
+        // 如果没抢到锁,或者说上限了, tryAcquireShared(arg) <0
         if (tryAcquireShared(arg) < 0)
+            // 获取锁失败-->再次尝试获取锁,加入排队,阻塞等待唤醒
             doAcquireSharedInterruptibly(arg);
     }
 

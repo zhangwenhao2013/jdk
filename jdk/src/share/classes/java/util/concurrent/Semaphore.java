@@ -152,6 +152,11 @@ import java.util.concurrent.locks.AbstractQueuedSynchronizer;
  *
  * @since 1.5
  * @author Doug Lea
+ *
+ * n. 信号标，旗语；臂板信号装置
+ * v. 打旗语，发信号
+ * 英  [ˈseməfɔː(r)]
+ * 美  [ˈseməfɔːr]
  */
 public class Semaphore implements java.io.Serializable {
     private static final long serialVersionUID = -3222578661600680210L;
@@ -242,10 +247,12 @@ public class Semaphore implements java.io.Serializable {
 
         protected int tryAcquireShared(int acquires) {
             for (;;) {
+                // 是否已经存在队列在排队了
                 if (hasQueuedPredecessors())
                     return -1;
                 int available = getState();
                 int remaining = available - acquires;
+                //如果抢锁失败, 直接返回 remaining, state的没变化
                 if (remaining < 0 ||
                     compareAndSetState(available, remaining))
                     return remaining;
