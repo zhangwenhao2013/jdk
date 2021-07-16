@@ -1644,6 +1644,8 @@ public abstract class AbstractQueuedSynchronizer
      * a condition queue, is now waiting to reacquire on sync queue.
      * @param node the node
      * @return true if is reacquiring
+     *
+     * 判断是否进入了   同步队列
      */
     final boolean isOnSyncQueue(Node node) {
         if (node.waitStatus == Node.CONDITION || node.prev == null)
@@ -1688,6 +1690,7 @@ public abstract class AbstractQueuedSynchronizer
         /*
          * If cannot change waitStatus, the node has been cancelled.
          */
+        // 将 阻塞在 CLH 同步队列中的 Node节点 ws 由CONDITION 修改为 0:  默认加载获取reentrantlock队列最后一个 ws =0 , 下一个修改前面一个ws的状态
         if (!compareAndSetWaitStatus(node, Node.CONDITION, 0))
             return false;
 
@@ -1697,8 +1700,10 @@ public abstract class AbstractQueuedSynchronizer
          * attempt to set waitStatus fails, wake up to resync (in which
          * case the waitStatus can be transiently and harmlessly wrong).
          */
+        // 加入 抢锁的队列  reentrantlock
         Node p = enq(node);
         int ws = p.waitStatus;
+        // 将 线程节点的 ws 修改为 SIGNAL:   这种情况  最后一个node 节点的 ws 为 SIGNAL
         if (ws > 0 || !compareAndSetWaitStatus(p, ws, Node.SIGNAL))
             LockSupport.unpark(node.thread);
         return true;
@@ -1736,6 +1741,7 @@ public abstract class AbstractQueuedSynchronizer
     final int fullyRelease(Node node) {
         boolean failed = true;
         try {
+            //有几重锁就 释放 几重锁
             int savedState = getState();
             if (release(savedState)) {
                 failed = false;
@@ -1865,10 +1871,15 @@ public abstract class AbstractQueuedSynchronizer
         private Node addConditionWaiter() {
             Node t = lastWaiter;
             // If lastWaiter is cancelled, clean out.
+            // 如果 条件队列不是null  并且  尾节点 ws 不是CONDITION
             if (t != null && t.waitStatus != Node.CONDITION) {
+                //移除 clh 条件队列中 ws 非 CONDITION的节点
                 unlinkCancelledWaiters();
                 t = lastWaiter;
             }
+
+            //如果 clh 条件队列为null, 则将当前线程当首节点, waitStatus 设置成 CONDITION
+
             Node node = new Node(Thread.currentThread(), Node.CONDITION);
             if (t == null)
                 firstWaiter = node;
@@ -1889,6 +1900,7 @@ public abstract class AbstractQueuedSynchronizer
                 if ( (firstWaiter = first.nextWaiter) == null)
                     lastWaiter = null;
                 first.nextWaiter = null;
+                // 将 同步队列中的被阻塞的线程 取出 ,加入到抢锁的队列中去
             } while (!transferForSignal(first) &&
                      (first = firstWaiter) != null);
         }
@@ -1920,6 +1932,10 @@ public abstract class AbstractQueuedSynchronizer
          * particular target to unlink all pointers to garbage nodes
          * without requiring many re-traversals during cancellation
          * storms.
+         *
+         *
+         * cLh 条件队列 只保留 waitStatus = CONDITION 的节点,其他节点将被摘除
+         *
          */
         private void unlinkCancelledWaiters() {
             Node t = firstWaiter;
@@ -1952,6 +1968,7 @@ public abstract class AbstractQueuedSynchronizer
          *         returns {@code false}
          */
         public final void signal() {
+            //判断 当前线程是否是持有  锁的线程
             if (!isHeldExclusively())
                 throw new IllegalMonitorStateException();
             Node first = firstWaiter;
@@ -2049,10 +2066,14 @@ public abstract class AbstractQueuedSynchronizer
         public final void await() throws InterruptedException {
             if (Thread.interrupted())
                 throw new InterruptedException();
+            // 将 线程 添加到 CLH 条件队列
             Node node = addConditionWaiter();
+            // 是否当前线程的 全部锁
             int savedState = fullyRelease(node);
             int interruptMode = 0;
+            // 判断是否已经进入了 同步队列
             while (!isOnSyncQueue(node)) {
+                //进入条件队列的 线程,释放了锁, 阻塞在这(等待唤醒)
                 LockSupport.park(this);
                 if ((interruptMode = checkInterruptWhileWaiting(node)) != 0)
                     break;
